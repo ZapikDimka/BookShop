@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search and View All Bookmarks</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <h1>Search and View All Bookmarks</h1>
+    <a href="/">Back to Home</a>
+
+    <!-- Пошук закладок -->
+    <label for="search-query">Search:</label>
+    <input type="text" id="search-query" placeholder="Enter title or URL">
+    <button onclick="searchBookmarks()">Search</button>
+
+    <!-- Виведення закладок -->
+    <h3>All Bookmarks</h3>
+    <div id="bookmarks-list"></div>
+
+    <script>
+        // Функція для пошуку закладок за назвою або URL
+        function searchBookmarks() {
+            const query = document.getElementById('search-query').value;
+            const url = `/api/bookmarks/?search=${query}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const bookmarksList = document.getElementById('bookmarks-list');
+                    bookmarksList.innerHTML = '';  // Очищення списку перед новим пошуком
+
+                    data.forEach(bookmark => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <h3>${bookmark.title}</h3>
+                            <p><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></p>
+                            <p>Category: ${bookmark.category ? bookmark.category.name : 'No category'}</p>
+                            <p>Favorite: ${bookmark.favorite ? 'Yes' : 'No'}</p>
+                        `;
+                        bookmarksList.appendChild(div);
+                    });
+                })
+                .catch(error => console.error('Error loading bookmarks:', error));
+        }
+
+        // Завантаження всіх закладок при завантаженні сторінки
+        function loadAllBookmarks() {
+            const url = `/api/bookmarks/`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const bookmarksList = document.getElementById('bookmarks-list');
+                    bookmarksList.innerHTML = '';  // Очищення списку перед завантаженням
+
+                    data.forEach(bookmark => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <h3>${bookmark.title}</h3>
+                            <p><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></p>
+                            <p>Category: ${bookmark.category ? bookmark.category.name : 'No category'}</p>
+                            <p>Favorite: ${bookmark.favorite ? 'Yes' : 'No'}</p>
+                        `;
+                        bookmarksList.appendChild(div);
+                    });
+                })
+                .catch(error => console.error('Error loading bookmarks:', error));
+        }
+
+        // Завантажуємо всі закладки при завантаженні сторінки
+        window.onload = function() {
+            loadAllBookmarks();
+        };
+    </script>
+</body>
+</html>

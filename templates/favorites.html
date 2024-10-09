@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favorites</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <h1>Your Favorite Bookmarks</h1>
+    <a href="/">Back to Home</a>
+
+    <div id="favorites-list"></div>
+
+    <script>
+        function loadFavorites() {
+            fetch('/api/bookmarks/?favorite=true')
+                .then(response => response.json())
+                .then(data => {
+                    const favoritesList = document.getElementById('favorites-list');
+                    favoritesList.innerHTML = '';
+                    data.forEach(bookmark => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <h3>${bookmark.title}</h3>
+                            <p>${bookmark.url}</p>
+                        `;
+                        favoritesList.appendChild(div);
+                    });
+                })
+                .catch(error => console.error('Error loading favorites:', error));
+        }
+
+        window.onload = loadFavorites;
+    </script>
+</body>
+</html>

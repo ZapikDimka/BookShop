@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Bookmarks</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    
+</head>
+<body>
+    <h1>Create a New Bookmark</h1>
+    <a href="/">Back to Home</a>
+
+    <h2>Add New Bookmark</h2>
+    <form id="add-bookmark-form" method="POST">
+        {% csrf_token %}
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required><br><br>
+        <label for="url">URL:</label>
+        <input type="url" id="url" name="url" required><br><br>
+        <label for="category">Category:</label>
+        <select id="category" name="category">
+            <option value="">-- Select Category --</option>
+        </select><br><br>
+        <label for="favorite">Mark as favorite:</label>
+        <input type="checkbox" id="favorite" name="favorite"><br><br>
+        <button type="submit">Add Bookmark</button>
+    </form>
+
+    <div id="error-message" style="color:red;"></div>
+
+    <script>
+        window.onload = function() {
+            loadCategories();
+        };
+
+        function loadCategories() {
+            fetch('/api/categories/')
+                .then(response => response.json())
+                .then(data => {
+                    const categorySelect = document.getElementById('category');
+                    categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
+                    data.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        option.textContent = category.name;
+                        categorySelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading categories:', error));
+        }
+
+        document.getElementById('add-bookmark-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const title = document.getElementById('title').value;
+            const url = document.getElementById('url').value;
+            const category = document.getElementById('category').value;
+            const favorite = document.getElementById('favorite').checked;
+
+            const bookmarkData = {
+                title: title,
+                url: url,
+                category: category ? parseInt(category) : null,
+                favorite: favorite
+            };
+
+            fetch('/api/bookmarks/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify(bookmarkData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => { throw new Error(data.error || 'Failed to add bookmark'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('Bookmark added successfully!');
+                document.getElementById('add-bookmark-form').reset();
+                document.getElementById('error-message').textContent = '';
+            })
+            .catch(error => {
+                document.getElementById('error-message').textContent = error.message;
+                console.error('Error adding bookmark:', error);
+            });
+        });
+    </script>
+</body>
+</html>
