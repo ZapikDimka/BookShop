@@ -12,7 +12,7 @@
     <a href="/">Back to Home</a>
 
     <h3>Category List</h3>
-    <div id="categories-list"></div> <!-- Список категорій буде динамічно завантажуватись тут -->
+    <div id="categories-list"></div>
 
     <h2>Add New Category</h2>
     <form id="add-category-form" method="POST">
@@ -23,57 +23,48 @@
     </form>
 
     <script>
-        // Завантаження категорій з API
         function loadCategories() {
             fetch('/api/categories/')
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Categories loaded:', data); // Виводимо отримані категорії
-                    const categoriesList = document.getElementById('categories-list');
-                    categoriesList.innerHTML = ''; // Очищаємо поточний список
+            .then(response => response.json())
+            .then(data => {
+                const categoriesList = document.getElementById('categories-list');
+                categoriesList.innerHTML = '';
 
-                    data.forEach(category => {
-                        const categoryItem = document.createElement('div');
-                        categoryItem.innerHTML = `<h3>${category.name}</h3>`;
-                        categoriesList.appendChild(categoryItem);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading categories:', error);
+                data.forEach(category => {
+                    const categoryItem = document.createElement('div');
+                    categoryItem.innerHTML = `<h3>${category.name}</h3>`;
+                    categoriesList.appendChild(categoryItem);
                 });
+            })
+            .catch(error => {
+                console.error('Error loading categories:', error);
+            });
         }
 
-        // Додавання нової категорії
         document.getElementById('add-category-form').addEventListener('submit', function(event) {
-            event.preventDefault(); // Запобігаємо перезавантаженню сторінки при сабміті
+            event.preventDefault();
 
             const name = document.getElementById('name').value;
-            console.log('Category name:', name); // Виводимо назву категорії для перевірки
-
             const categoryData = { name: name };
 
-            // Виконуємо POST-запит для додавання нової категорії
             fetch('/api/categories/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}',  // Обов'язковий CSRF токен
+                    'X-CSRFToken': '{{ csrf_token }}'
                 },
                 body: JSON.stringify(categoryData)
             })
             .then(response => response.json())
             .then(data => {
-                console.log('Category added:', data);
-                loadCategories();  // Оновлюємо список категорій після додавання
+                loadCategories();
             })
             .catch(error => {
                 console.error('Error adding category:', error);
             });
         });
 
-        window.onload = function() {
-            loadCategories(); // Завантажуємо категорії після завантаження сторінки
-        };
+        window.onload = loadCategories;
     </script>
 </body>
 </html>

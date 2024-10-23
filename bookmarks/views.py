@@ -1,97 +1,70 @@
-from rest_framework import viewsets, filters
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
-from rest_framework import status
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Bookmark, Category
-from .serializers import BookmarkSerializer, CategorySerializer
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 
-# Bookmark ViewSet
+from .models import Bookmark, Category
+from .serializers import BookmarkSerializer, CategorySerializer
+
+
+# Bookmark ViewSet (для API доступу до закладок)
 class BookmarkViewSet(viewsets.ModelViewSet):
-    queryset = Bookmark.objects.all().order_by('title')  # Сортуємо закладки за назвою
     serializer_class = BookmarkSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['category', 'favorite']
     search_fields = ['title', 'url']
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        # Фільтруємо закладки за поточним користувачем
+        return Bookmark.objects.filter(user=self.request.user).order_by('title')
+
+    def perform_create(self, serializer):
+        # Автоматично встановлюємо користувача як власника закладки
+        serializer.save(user=self.request.user)
 
     def create(self, request, *args, **kwargs):
-        url = request.data.get('url')
-        title = request.data.get('title')
-        category_id = request.data.get('category')
+        # Логування даних запиту
+        print("Received data:", request.data)
 
-        # Перевіряємо чи існує закладка з такою ж URL та назвою
-        if Bookmark.objects.filter(url=url, title=title).exists():
-            return Response(
-                {"error": "A bookmark with this URL and title already exists."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Перевіряємо чи існує закладка з такою ж URL
-        if Bookmark.objects.filter(url=url).exists():
-            return Response(
-                {"error": "A bookmark with this URL already exists."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Перевіряємо чи існує закладка з такою ж назвою
-        if Bookmark.objects.filter(title=title).exists():
-            return Response(
-                {"error": "A bookmark with this title already exists."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Отримуємо категорію, якщо вона вказана
-        if category_id:
-            try:
-                category = Category.objects.get(id=category_id)
-            except Category.DoesNotExist:
-                return Response(
-                    {"error": "Category not found."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-        else:
-            category = None
-
-        # Створюємо закладку
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(category=category)  # Прив'язуємо категорію до закладки
+            self.perform_create(serializer)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+        # Логування помилок
+        print("Errors:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['patch'])
     def favorite(self, request, pk=None):
-        # Зміна статусу "улюблене"
         bookmark = self.get_object()
         bookmark.favorite = not bookmark.favorite
         bookmark.save()
         return Response({'status': 'favorite updated'}, status=status.HTTP_200_OK)
 
 
-# Category ViewSet
+# Category ViewSet (для API доступу до категорій)
 class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all().order_by('name')  # Сортуємо категорії за назвою
     serializer_class = CategorySerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        # Фільтруємо категорії за поточним користувачем
+        return Category.objects.filter(user=self.request.user).order_by('name')
+
+    def perform_create(self, serializer):
+        # Автоматично встановлюємо користувача як власника категорії
+        serializer.save(user=self.request.user)
 
     def create(self, request, *args, **kwargs):
         name = request.data.get('name')
 
-        # Перевіряємо чи існує категорія з такою ж назвою
-        if Category.objects.filter(name=name).exists():
+        # Перевірка, чи існує категорія з таким іменем у поточного користувача
+        if Category.objects.filter(name=name, user=request.user).exists():
             return Response(
                 {"error": "A category with this name already exists."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -99,7 +72,30 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            self.perform_create(serializer)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+        # Логування помилок
+        print("Errors:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Функціональні подання для рендерингу HTML
+@login_required
+def bookmarks_view(request):
+    return render(request, 'bookmarks.html')
+
+
+@login_required
+def categories_view(request):
+    return render(request, 'categories.html')
+
+
+@login_required
+def favorites_view(request):
+    return render(request, 'favorites.html')
+
+
+@login_required
+def search_view(request):
+    return render(request, 'search.html')

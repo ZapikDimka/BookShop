@@ -1,19 +1,30 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
-    {% load static %}
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <title>Home</title>
 </head>
 <body>
     <h1>Welcome to the Bookmark Manager</h1>
+
+    <div id="auth-buttons">
+        {% if user.is_authenticated %}
+        <p>Logged in as: {{ user.username }}</p>
+        <button onclick="window.location.href='{% url 'logout' %}'">Logout</button>
+        {% else %}
+        <button onclick="window.location.href='{% url 'login' %}'">Login</button>
+        <button onclick="window.location.href='{% url 'register' %}'">Register</button>
+        {% endif %}
+    </div>
+
     <ul>
-        <li><a href="/bookmarks/">View Bookmarks</a></li>
-        <li><a href="/categories/">View Categories</a></li>
-        <li><a href="/favorites/">View Favorites</a></li>
-        <li><a href="/search/">Search Bookmarks</a></li>
+        <li><a href="{% url 'bookmarks' %}">View Bookmarks</a></li>
+        <li><a href="{% url 'categories' %}">View Categories</a></li>
+        <li><a href="{% url 'favorites' %}">View Favorites</a></li>
+        <li><a href="{% url 'search' %}">Search Bookmarks</a></li>
     </ul>
 </body>
 </html>
