@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Bookmarks</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        .error-text {
+            color: red;
+            font-size: 0.9em;
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create a New Bookmark</h1>
+    <a href="/">Back to Home</a>
+
+    <h2>Add New Bookmark</h2>
+    <form id="add-bookmark-form" method="POST">
+        {% csrf_token %}
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required>
+        <div id="title-error" class="error-text"></div><br><br>
+
+        <label for="url">URL:</label>
+        <input type="url" id="url" name="url" required>
+        <div id="url-error" class="error-text"></div><br><br>
+
+        <label for="category">Category:</label>
+        <select id="category" name="category_id">
+            <option value="">-- Select Category --</option>
+        </select>
+        <div id="category-error" class="error-text"></div><br><br>
+
+        <label for="favorite">Mark as favorite:</label>
+        <input type="checkbox" id="favorite" name="favorite"><br><br>
+
+        <button type="submit">Add Bookmark</button>
+    </form>
+
+    <div id="general-error" class="error-text"></div>
+
+    <script>
+        // Функція для отримання CSRF-токена з кукі
+        function getCSRFToken() {
+            let csrfToken = null;
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    csrfToken = value;
+                    break;
+                }
+            }
+            return csrfToken;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategories();  // Завантажуємо категорії при завантаженні сторінки
+        });
+
+        // Завантаження категорій
+        function loadCategories() {
+            fetch('/api/categories/', {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load categories');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const categorySelect = document.getElementById('category');
+                categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
+                data.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.name;
+                    categorySelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                document.getElementById('general-error').textContent = 'Failed to load categories';
+                console.error('Error loading categories:', error);
+            });
+        }
+
+        // Обробка форми додавання закладки
+        document.getElementById('add-bookmark-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            // Отримання значень з форми
+            const title = document.getElementById('title').value;
+            const url = document.getElementById('url').value;
+            const category = document.getElementById('category').value;
+            const favorite = document.getElementById('favorite').checked;
+
+            // Очистка попередніх помилок
+            document.getElementById('title-error').textContent = '';
+            document.getElementById('url-error').textContent = '';
+            document.getElementById('category-error').textContent = '';
+            document.getElementById('general-error').textContent = '';
+
+            // Формування даних для запиту
+            const bookmarkData = {
+                title: title,
+                url: url,
+                favorite: favorite
+            };
+
+            // Додаємо category_id, якщо вона вибрана
+            if (category) {
+                bookmarkData.category_id = parseInt(category);
+            }
+
+            // Отримання CSRF-токена
+            const csrfToken = getCSRFToken();
+
+            // Надсилання POST-запиту для створення закладки
+            fetch('/api/bookmarks/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,  // Додаємо CSRF-токен у заголовок
+                },
+                body: JSON.stringify(bookmarkData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        handleErrors(data);
+                        throw new Error('Failed to add bookmark');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('Bookmark added successfully!');
+                document.getElementById('add-bookmark-form').reset();
+            })
+            .catch(error => {
+                console.error('Error adding bookmark:', error);
+            });
+        });
+
+        // Функція для обробки помилок
+        function handleErrors(errors) {
+            if (errors.title) {
+                document.getElementById('title-error').textContent = errors.title[0];
+            }
+            if (errors.url) {
+                document.getElementById('url-error').textContent = errors.url[0];
+            }
+            if (errors.category_id) {
+                document.getElementById('category-error').textContent = errors.category_id[0];
+            }
+            if (errors.detail) {
+                document.getElementById('general-error').textContent = errors.detail;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Categories</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <h1>Categories</h1>
+    <a href="/">Back to Home</a>
+
+    <h3>Category List</h3>
+    <div id="categories-list"></div>
+
+    <h2>Add New Category</h2>
+    <form id="add-category-form" method="POST">
+        {% csrf_token %}
+        <label for="name">Category Name:</label>
+        <input type="text" id="name" name="name" required><br><br>
+        <button type="submit">Add Category</button>
+    </form>
+
+    <script>
+        function loadCategories() {
+            fetch('/api/categories/')
+            .then(response => response.json())
+            .then(data => {
+                const categoriesList = document.getElementById('categories-list');
+                categoriesList.innerHTML = '';
+
+                data.forEach(category => {
+                    const categoryItem = document.createElement('div');
+                    categoryItem.innerHTML = `<h3>${category.name}</h3>`;
+                    categoriesList.appendChild(categoryItem);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading categories:', error);
+            });
+        }
+
+        document.getElementById('add-category-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('name').value;
+            const categoryData = { name: name };
+
+            fetch('/api/categories/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(categoryData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadCategories();
+            })
+            .catch(error => {
+                console.error('Error adding category:', error);
+            });
+        });
+
+        window.onload = loadCategories;
+    </script>
+</body>
+</html>

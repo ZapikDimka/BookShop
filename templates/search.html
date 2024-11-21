@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search and View All Bookmarks</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <h1>Search and View All Bookmarks</h1>
+    <a href="/">Back to Home</a>
+
+    <label for="search-query">Search:</label>
+    <input type="text" id="search-query" placeholder="Enter title or URL">
+    <button onclick="searchBookmarks()">Search</button>
+
+    <h3>All Bookmarks</h3>
+    <div id="bookmarks-list"></div>
+    <div id="error-message" style="color:red;"></div>
+
+    <script>
+        // Функція для пошуку закладок
+function searchBookmarks() {
+            const query = document.getElementById('search-query').value;
+            const url = `/api/bookmarks/?search=${query}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const bookmarksList = document.getElementById('bookmarks-list');
+                    bookmarksList.innerHTML = '';  // Очищення списку перед новим пошуком
+
+                    data.forEach(bookmark => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <h3>${bookmark.title}</h3>
+                            <p><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></p>
+                            <p>Category: ${bookmark.category ? bookmark.category.name : 'No category'}</p>
+                            <p>Favorite: ${bookmark.favorite ? 'Yes' : 'No'}</p>
+                        `;
+                        bookmarksList.appendChild(div);
+                    });
+                })
+                .catch(error => console.error('Error loading bookmarks:', error));
+        }
+
+        // Функція для завантаження всіх закладок
+       function loadAllBookmarks() {
+            const url = `/api/bookmarks/`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const bookmarksList = document.getElementById('bookmarks-list');
+                    bookmarksList.innerHTML = '';  // Очищення списку перед завантаженням
+
+                    data.forEach(bookmark => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <h3>${bookmark.title}</h3>
+                            <p><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></p>
+                            <p>Category: ${bookmark.category ? bookmark.category.name : 'No category'}</p>
+                            <p>Favorite: ${bookmark.favorite ? 'Yes' : 'No'}</p>
+                        `;
+                        bookmarksList.appendChild(div);
+                    });
+                })
+                .catch(error => console.error('Error loading bookmarks:', error));
+        }
+
+        // Функція для відображення закладок
+        function renderBookmarks(bookmarks) {
+            const bookmarksList = document.getElementById('bookmarks-list');
+            bookmarksList.innerHTML = '';
+
+            if (bookmarks.length === 0) {
+                bookmarksList.innerHTML = '<p>No bookmarks found.</p>';
+                return;
+            }
+
+            bookmarks.forEach(bookmark => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <h3>${bookmark.title}</h3>
+                    <p><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></p>
+                    <p>Category: ${bookmark.category ? bookmark.category.name : 'No category'}</p>
+                    <p>Favorite: ${bookmark.favorite ? 'Yes' : 'No'}</p>
+                `;
+                bookmarksList.appendChild(div);
+            });
+        }
+
+        // Завантаження всіх закладок при завантаженні сторінки
+        window.onload = loadAllBookmarks;
+    </script>
+</body>
+</html>
